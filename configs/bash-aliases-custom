@@ -1,0 +1,60 @@
+# bash-aliases-custom.sh
+
+# Navigation Aliases
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias ~='cd ~'
+
+# Enhanced List Commands
+alias ls='ls --color=auto -F'
+alias la='ls -A'
+alias ll='ls -lh'
+alias l='ls -lah'
+
+# System Utilities
+alias df='df -h'
+alias du='du -h'
+alias free='free -h'
+alias ps='ps auxf'
+
+# Network Utilities
+alias ping='ping -c 5'
+alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -'
+alias myip='curl ifconfig.me'
+
+# Git Shortcuts
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit -m'
+alias gp='git push'
+alias gl='git pull'
+alias gd='git diff'
+
+# Quick Commands
+alias reload='source ~/.bashrc'
+alias cpwd='pwd | xclip -selection clipboard'
+alias mkdir='mkdir -pv'
+
+# System Information
+alias sysinfo='neofetch'
+alias ports='sudo netstat -tulanp'
+alias cpu='lscpu | grep "Model name"'
+alias mem='free -h'
+
+# Enhanced Commands
+alias cat='bat'
+alias find='fd'
+alias grep='grep --color=auto'
+
+# Package Management
+alias update='sudo apt update && sudo apt upgrade -y'
+alias install='sudo apt install'
+alias remove='sudo apt remove'
+
+# Security
+alias checkrootkits='sudo chkrootkit'
+
+# Misc Utilities
+alias timer='time'
+alias weather='curl wttr.in'
