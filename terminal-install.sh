@@ -1,10 +1,9 @@
-# terminal-install.sh
 #!/bin/bash
 
 # Ultimate Terminal Enhancement Installation Script
 
 # Ensure script is run with sudo
-if [[ $EUID -ne 0 ]]; then
+if [ "$EUID" -ne 0 ]; then
    echo "This script must be run with sudo" 
    echo "Usage: sudo ./terminal-install.sh"
    exit 1
