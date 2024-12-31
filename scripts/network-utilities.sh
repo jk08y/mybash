@@ -41,7 +41,7 @@ port_scan() {
     done
 }
 
-# Network Speed Test
+# Network Speed Test Test 
 network_speedtest() {
     echo -e "${YELLOW}Running Network Speed Test...${NC}"
     
