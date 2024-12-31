@@ -40,7 +40,7 @@ system_info() {
     df -h
 }
 
-# System Performance Monitor
+# System Performance Monitor status
 performance_monitor() {
     log_section "SYSTEM PERFORMANCE"
     
