@@ -132,6 +132,6 @@ main() {
     echo "Backup of original configs stored in: $BACKUP_DIR"
 }
 
-# Run the main installation
+# Run the main installation process
 main
 
