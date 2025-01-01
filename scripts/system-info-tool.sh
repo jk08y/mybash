@@ -111,5 +111,4 @@ main() {
     esac
 }
 
-# Execute main function
 main "$@"
