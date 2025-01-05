@@ -1,33 +1,38 @@
 # bashrc-custom.bashrc
+# This is a custom configuration file for Bash shell initialization
 
 # Global bashrc configuration
-
-# If not running interactively, don't do anything
+# Ensures script only runs for interactive shells - exits if non-interactive
 [[ $- != *i* ]] && return
 
 # Shell Options
-shopt -s cdspell      # Autocorrect typos in path names
-shopt -s checkwinsize # Update window size after each command
-shopt -s histappend   # Append to history file, don't overwrite
+shopt -s cdspell      # Autocorrect typos in path names when using 'cd'
+shopt -s checkwinsize # Automatically adjust the terminal window size after each command
+shopt -s histappend   # Append new commands to history instead of overwriting
 
 # History Control
-HISTCONTROL=ignoreboth # Ignore duplicate and space-starting commands
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTCONTROL=ignoreboth # Combines 'ignorespace' and 'ignoredups' - ignores duplicates and commands starting with space
+HISTSIZE=1000         # Maximum number of commands stored in memory
+HISTFILESIZE=2000     # Maximum number of lines in the history file
 
 # Prompt Customization
+# Sets a colored prompt for terminals supporting 256 colors, falls back to simple prompt otherwise
 if [[ "$TERM" == "xterm-256color" || "$TERM" == "screen-256color" ]]; then
+    # Green username@hostname, blue current directory
     PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
+    # Simple uncolored prompt: username@hostname:current_directory$
     PS1='\u@\h:\w\$ '
 fi
 
 # Color Support
+# Enables colorized output for 'ls' and other commands if dircolors is available
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 
 # Autocomplete
+# Loads bash completion if available and not in POSIX mode
 if ! shopt -oq posix; then
     if [ -f /usr/share/bash-completion/bash_completion ]; then
         . /usr/share/bash-completion/bash_completion
@@ -37,44 +42,51 @@ if ! shopt -oq posix; then
 fi
 
 # Environment Variables
-export EDITOR=nano
-export VISUAL=nano
-export LANG=en_US.UTF-8
+export EDITOR=nano    # Sets default text editor
+export VISUAL=nano    # Sets default visual editor
+export LANG=en_US.UTF-8 # Sets default language and character encoding
 
 # Custom PATH additions
+# Adds user's bin directories to PATH for custom scripts and programs
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
 # Load Aliases
+# Sources additional alias definitions if they exist
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
 # Default Applications
-export BROWSER=firefox
-export TERMINAL=gnome-terminal
+export BROWSER=firefox        # Sets default web browser
+export TERMINAL=gnome-terminal # Sets default terminal emulator
 
 # Performance Monitoring
-ulimit -n 4096  # Increase max open files limit
+ulimit -n 4096  # Increases file descriptor limit to handle more open files
 
 # Custom Functions
+
+# mkcd: Creates a directory and changes into it
 mkcd() {
     mkdir -p "$1" && cd "$1"
 }
 
+# extract: Universal extraction function
+# Automatically handles different archive formats
 extract() {
     if [ -f "$1" ] ; then
         case "$1" in
-            *.tar.bz2)   tar xjf "$1"     ;;
-            *.tar.gz)    tar xzf "$1"     ;;
-            *.bz2)       bunzip2 "$1"     ;;
-            *.rar)       unrar x "$1"     ;;
-            *.gz)        gunzip "$1"      ;;
-            *.tar)       tar xf "$1"      ;;
-            *.tbz2)      tar xjf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
-            *.zip)       unzip "$1"       ;;
-            *.Z)         uncompress "$1"  ;;
-            *)           echo "'$1' cannot be extracted" ;;
+            # Handles various compressed file formats with appropriate extraction commands
+            *.tar.bz2)   tar xjf "$1"     ;;  # TAR + BZIP2 archives
+            *.tar.gz)    tar xzf "$1"     ;;  # TAR + GZIP archives
+            *.bz2)       bunzip2 "$1"     ;;  # BZIP2 archives
+            *.rar)       unrar x "$1"     ;;  # RAR archives
+            *.gz)        gunzip "$1"      ;;  # GZIP archives
+            *.tar)       tar xf "$1"      ;;  # TAR archives
+            *.tbz2)      tar xjf "$1"     ;;  # TAR + BZIP2 archives
+            *.tgz)       tar xzf "$1"     ;;  # TAR + GZIP archives
+            *.zip)       unzip "$1"       ;;  # ZIP archives
+            *.Z)         uncompress "$1"  ;;  # Z archives
+            *)           echo "'$1' cannot be extracted" ;; # Unsupported format
         esac
     else
         echo "'$1' is not a valid file"
