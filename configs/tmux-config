@@ -1,55 +1,61 @@
+
 # tmux-config.conf
+# Configuration file for tmux terminal multiplexer
+
 # General Settings
-set -g default-terminal "screen-256color"
-set -g history-limit 20000
-set -g base-index 1
-setw -g pane-base-index 1
-set -g renumber-windows on
+set -g default-terminal "screen-256color"  # Enable 256 color support
+set -g history-limit 20000                 # Set scrollback buffer to 20000 lines
+set -g base-index 1                        # Start window numbering at 1 instead of 0
+setw -g pane-base-index 1                 # Start pane numbering at 1 instead of 0
+set -g renumber-windows on                # Renumber windows when one is closed
 
 # Prefix Key
-unbind C-b
-set-option -g prefix C-a
-bind C-a send-prefix
+unbind C-b                                # Unbind default prefix (Ctrl-b)
+set-option -g prefix C-a                  # Set new prefix to Ctrl-a
+bind C-a send-prefix                      # Allow sending prefix key to nested tmux sessions
 
 # Key Bindings
-bind | split-window -h -c "#{pane_current_path}"  # Horizontal split
-bind - split-window -v -c "#{pane_current_path}"  # Vertical split
-unbind '"'
-unbind %
+# Create new splits while preserving current directory
+bind | split-window -h -c "#{pane_current_path}"  # Horizontal split with |
+bind - split-window -v -c "#{pane_current_path}"  # Vertical split with -
+unbind '"'                                        # Remove default horizontal split
+unbind %                                          # Remove default vertical split
 
 # Pane Navigation
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
+# Vim-style pane navigation using h,j,k,l
+bind h select-pane -L    # Move to left pane
+bind j select-pane -D    # Move to pane below
+bind k select-pane -U    # Move to pane above
+bind l select-pane -R    # Move to right pane
 
 # Pane Resizing
-bind -r H resize-pane -L 5
-bind -r J resize-pane -D 5
-bind -r K resize-pane -U 5
-bind -r L resize-pane -R 5
+# Vim-style pane resizing with repeatable bindings (-r flag)
+bind -r H resize-pane -L 5    # Resize left by 5 cells
+bind -r J resize-pane -D 5    # Resize down by 5 cells
+bind -r K resize-pane -U 5    # Resize up by 5 cells
+bind -r L resize-pane -R 5    # Resize right by 5 cells
 
 # Mouse Support
-set -g mouse on
+set -g mouse on    # Enable mouse support for scrolling and pane selection
 
-# Status Bar
-set -g status-bg black
-set -g status-fg white
-set -g status-left '#[fg=green]#H'
-set -g status-right '#[fg=yellow]%Y-%m-%d %H:%M'
-set -g status-interval 60
-set -g status-left-length 30
+# Status Bar Configuration
+set -g status-bg black                          # Set status bar background to black
+set -g status-fg white                          # Set status bar text to white
+set -g status-left '#[fg=green]#H'             # Show hostname in green on left
+set -g status-right '#[fg=yellow]%Y-%m-%d %H:%M' # Show date/time in yellow on right
+set -g status-interval 60                       # Update status bar every 60 seconds
+set -g status-left-length 30                    # Set maximum length of left component
 
 # Window Titles
-set-window-option -g automatic-rename on
-set-option -g set-titles on
-set-option -g allow-rename off
+set-window-option -g automatic-rename on   # Automatically rename windows based on current program
+set-option -g set-titles on               # Enable setting terminal title
+set-option -g allow-rename off            # Prevent programs from renaming windows
 
-# Performance
-set -g repeat-time 500
-set -sg escape-time 0
+# Performance Tweaks
+set -g repeat-time 500                    # Time in milliseconds to allow repeated commands
+set -sg escape-time 0                     # Remove delay after pressing escape key
 
 # Copy Mode
-setw -g mode-keys vi
-bind-key -T copy-mode-vi 'v' send -X begin-selection
-bind-key -T copy-mode-vi 'y' send -X copy-selection
+setw -g mode-keys vi                      # Use vi keybindings in copy mode
+bind-key -T copy-mode-vi 'v' send -X begin-selection    # Begin selection with 'v'
+bind-key -T copy-mode-vi 'y' send -X copy-selection     # Yank selection with 'y'
