@@ -1,6 +1,6 @@
 # bash-aliases-custom.sh
 
-# Navigation Aliases
+# Navigation Aliasess
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
