@@ -13,7 +13,7 @@ NC='\033[0m' # No Color update
 BACKUP_DIR="$HOME/Backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
-# Logging Function
+# Logging all Function 
 log() {
     local type=$1
     local message=$2
