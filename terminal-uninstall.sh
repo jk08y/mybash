@@ -93,7 +93,7 @@ cleanup_zsh() {
     chsh -s "$(which bash)"
 }
 
-# Main Uninstallation Function (complete uninstall)
+# Main Uninstallation Function
 main() {
     clear
     echo "🔄 Ultimate Terminal Enhancement Uninstaller 🔄"
