@@ -70,7 +70,7 @@ mkcd() {
     mkdir -p "$1" && cd "$1"
 }
 
-# extract: Universal extraction function
+# extract: Universal extraction functions
 # Automatically handles different archive formats
 extract() {
     if [ -f "$1" ] ; then
