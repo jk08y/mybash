@@ -45,7 +45,7 @@ mybash/
 1. Clone the repository:
    ```bash
    git clone https://github.com/jk08y/mybash.git
-   cd mybash
+   cd mybash 
    ```
 
 2. Make the installation script executable:
