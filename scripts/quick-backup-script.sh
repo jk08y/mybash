@@ -43,7 +43,7 @@ create_backup_dir() {
     fi
 }
 
-# File/Directory Backup
+# File/Directory Backup All
 backup_item() {
     local source=$1
     local name=$(basename "$source")
