@@ -1,4 +1,4 @@
-# terminal-uninstall.sh
+# terminal-uninstall.sh updated
 #!/bin/bash
 
 # Ultimate Terminal Enhancement Uninstallation Script
