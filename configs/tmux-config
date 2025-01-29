@@ -21,7 +21,7 @@ bind - split-window -v -c "#{pane_current_path}"  # Vertical split with -
 unbind '"'                                        # Remove default horizontal split
 unbind %                                          # Remove default vertical split
 
-# Pane Navigation
+# Pane Navigation 
 # Vim-style pane navigation using h,j,k,l
 bind h select-pane -L    # Move to left pane
 bind j select-pane -D    # Move to pane below
