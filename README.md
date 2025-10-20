@@ -1,6 +1,6 @@
-# Ultimate Terminal Enhancement
+# my bash
 
-A comprehensive terminal setup to boost productivity and improve your command-line experience.
+A  terminal setup to boost productivity and improve your command-line experience.
 
 ## Project Structure
 
@@ -84,3 +84,4 @@ To remove the terminal enhancements:
 ## Contributing
 
 Contributions, issues, and feature requests are welcome. Feel free to check [issues page](https://github.com/jk08y/mybash/issues)
+
