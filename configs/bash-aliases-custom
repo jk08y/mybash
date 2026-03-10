@@ -34,12 +34,15 @@ alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/m
 # Git Shorthands
 alias gs='git status'
 alias ga='git add'
+alias ga.='git add .'
 alias gc='git commit -m'
+alias gca='git commit -am'
 alias gp='git push'
 alias gl='git pull'
 alias gd='git diff'
 alias gco='git checkout'
-alias glog='git log --oneline --graph --decorate'
+alias glog='git log --oneline --graph --decorate --all'
+alias gcl='git clone'
 
 # Quick System Tasks
 alias reload='source ~/.bashrc'
@@ -60,9 +63,14 @@ if command -v fd >/dev/null 2>&1; then
 fi
 
 # Search Utilities
-alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+# If ripgrep is installed, use it for super fast searching
+if command -v rg >/dev/null 2>&1; then
+    alias grep='rg'
+else
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
 
 # Package Management (Debian/Ubuntu Specific)
 alias update='sudo apt update && sudo apt upgrade -y'

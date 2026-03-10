@@ -104,6 +104,29 @@ install_powerlevel10k() {
     fi
 }
 
+# Install Zsh Advanced Plugins
+install_zsh_plugins() {
+    local PLUGINS_DIR="${ZSH_CUSTOM:-$USER_HOME/.oh-my-zsh/custom}/plugins"
+    
+    # 1. zsh-autosuggestions
+    if [ ! -d "$PLUGINS_DIR/zsh-autosuggestions" ]; then
+        log_info "Installing zsh-autosuggestions..."
+        git clone https://github.com/zsh-users/zsh-autosuggestions "$PLUGINS_DIR/zsh-autosuggestions" || die "Failed to clone zsh-autosuggestions"
+        log_success "zsh-autosuggestions installed."
+    else
+        log_info "zsh-autosuggestions already installed."
+    fi
+
+    # 2. zsh-syntax-highlighting
+    if [ ! -d "$PLUGINS_DIR/zsh-syntax-highlighting" ]; then
+        log_info "Installing zsh-syntax-highlighting..."
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$PLUGINS_DIR/zsh-syntax-highlighting" || die "Failed to clone zsh-syntax-highlighting"
+        log_success "zsh-syntax-highlighting installed."
+    else
+        log_info "zsh-syntax-highlighting already installed."
+    fi
+}
+
 # Backup and Install Configurations
 install_configs() {
     log_info "Setting up configurations..."
@@ -140,6 +163,12 @@ install_configs() {
         cp -f configs/tmux-config "$USER_HOME/.tmux.conf"
     else
         log_warning "configs/tmux-config not found. Skipping .tmux.conf installation."
+    fi
+
+    if [ -f "configs/zshrc-custom" ]; then
+        cp -f configs/zshrc-custom "$USER_HOME/.zshrc"
+    else
+        log_warning "configs/zshrc-custom not found. Falling back to default Oh-My-Zsh configs."
     fi
     
     log_success "Configurations installed successfully."
@@ -200,6 +229,7 @@ main() {
     check_prerequisites
     install_oh_my_zsh
     install_powerlevel10k
+    install_zsh_plugins
     install_configs
     install_scripts
     change_shell

@@ -4,11 +4,16 @@ A professional, robust terminal setup designed to significantly boost productivi
 
 ## Core Features
 
-- **Advanced Shell Environment**
-  - Configures **Zsh** with the powerful **Oh My Zsh** framework.
-  - Implements the blazing-fast and highly informative **Powerlevel10k** prompt theme.
+- **Advanced Shell Environment (Zsh Dominance)**
+  - Configures **Zsh** with the powerful **Oh My Zsh** framework and the blazing-fast **Powerlevel10k** true-color prompt theme.
+  - **Auto-Suggestions**: IDE-like predictive typing based on your command history (via `zsh-autosuggestions`).
+  - **Syntax Highlighting**: Real-time validation of commands (red/green) protecting against syntax errors before execution (via `zsh-syntax-highlighting`).
   - Includes a meticulously curated set of bash aliases for faster directory navigation, safe file operations, and improved system diagnostics.
-  - POSIX-compliant, secure bash configuration (`.bashrc`) with refined history handling, directory coloring, and intuitive archive extraction.
+  - Secure bash configuration (`.bashrc`) with refined history handling, intelligent archive extraction, and POSIX compliance.
+
+- **Extreme Search with FZF & Modern Tooling**
+  - Instantaneous, perfectly styled fuzzy finding integrations across your terminal history and filesystem.
+  - Powered automatically by `fd` (lightning fast, honors `.gitignore`) and `bat` (beautiful inline syntax highlighting previews) if installed on your system.
 
 - **System & Network Utilities**
   - **Network Utilities Manager**: A robust CLI to check connectivity, scan ports, run speed tests, and retrieve geolocation data.

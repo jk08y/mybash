@@ -99,11 +99,23 @@ cleanup_zsh() {
     log_info "Cleaning up Zsh custom configurations..."
     
     local ZSH_DIR="$USER_HOME/.oh-my-zsh"
-    local P10K_DIR="${ZSH_CUSTOM:-$USER_HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+    local CUSTOM_DIR="${ZSH_CUSTOM:-$USER_HOME/.oh-my-zsh/custom}"
+    local P10K_DIR="$CUSTOM_DIR/themes/powerlevel10k"
+    local PLUGINS_DIR="$CUSTOM_DIR/plugins"
     
     if [ -d "$P10K_DIR" ]; then
         rm -rf "$P10K_DIR"
         log_success "Powerlevel10k theme removed."
+    fi
+
+    if [ -d "$PLUGINS_DIR/zsh-autosuggestions" ]; then
+        rm -rf "$PLUGINS_DIR/zsh-autosuggestions"
+        log_success "zsh-autosuggestions plugin removed."
+    fi
+
+    if [ -d "$PLUGINS_DIR/zsh-syntax-highlighting" ]; then
+        rm -rf "$PLUGINS_DIR/zsh-syntax-highlighting"
+        log_success "zsh-syntax-highlighting plugin removed."
     fi
     
     if [ -d "$ZSH_DIR" ]; then
