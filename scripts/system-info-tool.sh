@@ -1,98 +1,103 @@
-#!/bin/bash
-# System Information and Monitoring Tool
-# Optimized for performance and readability
+#!/usr/bin/env bash
 
-# Color Codes (Using more efficient declaration)
+# system-info-tool.sh
+# System Information and Monitoring Tool
+
+set -euo pipefail
+
+# Color Codes
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
+readonly RED='\033[0;31m'
 readonly NC='\033[0m' # No Color
 
-# Logging function for consistent output
 log_section() {
-    printf "${BLUE}===== %s =====${NC}\n" "$1"
+    printf "\n${BLUE}===== %s =====${NC}\n" "$1"
 }
 
-# System Information Function
+# System Information
 system_info() {
     log_section "SYSTEM INFORMATION"
     
-    # Hardware Information (Using more efficient commands)
-    printf "${GREEN}[*] Hardware Details:${NC}\n"
-    printf "Hostname: %s\n" "$(hostname -f)"
-    printf "Kernel: %s\n" "$(uname -r)"
-    printf "Architecture: %s\n" "$(uname -m)"
+    printf "${GREEN}Hardware Details:${NC}\n"
+    printf "  Hostname:     %s\n" "$(hostname -f 2>/dev/null || hostname)"
+    printf "  Kernel:       %s\n" "$(uname -r)"
+    printf "  Architecture: %s\n" "$(uname -m)"
     
-    # CPU Information (More robust extraction)
-    printf "\n${GREEN}[*] CPU Information:${NC}\n"
+    printf "\n${GREEN}CPU Information:${NC}\n"
     local cpu_model cpu_cores
-    cpu_model=$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | xargs)
-    cpu_cores=$(nproc)
-    printf "Model: %s\n" "$cpu_model"
-    printf "Cores: %s\n" "$cpu_cores"
+    cpu_model=$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | xargs || echo "Unknown CPU")
+    cpu_cores=$(nproc || echo "Unknown Cores")
+    printf "  Model:        %s\n" "$cpu_model"
+    printf "  Cores:        %s\n" "$cpu_cores"
     
-    # Memory Information
-    printf "\n${GREEN}[*] Memory Details:${NC}\n"
-    free -h
+    printf "\n${GREEN}Memory Details:${NC}\n"
+    free -h | awk 'NR==2{printf "  Total: %s\n  Used:  %s\n  Free:  %s\n", $2, $3, $4}'
     
-    # Disk Usage
-    printf "\n${GREEN}[*] Disk Usage:${NC}\n"
-    df -h
+    printf "\n${GREEN}Disk Usage (Root /):${NC}\n"
+    df -h / | tail -n 1 | awk '{printf "  Total: %s\n  Used:  %s\n  Avail: %s\n  Usage: %s\n", $2, $3, $4, $5}'
 }
 
-# System Performance Monitor status
+# System Performance
 performance_monitor() {
     log_section "SYSTEM PERFORMANCE"
     
-    # CPU Usage (More accurate calculation)
-    printf "${GREEN}[*] CPU Usage:${NC}\n"
-    mpstat 1 1 | awk '$3 ~ /[0-9.]+/ {print 100 - $3 "%"}'
+    printf "${GREEN}CPU Load Average:${NC}\n"
+    local load_avg
+    load_avg=$(uptime | awk -F'load average:' '{print $2}' | xargs)
+    printf "  1/5/15 min:   %s\n" "$load_avg"
     
-    # Memory Usage
-    printf "\n${GREEN}[*] Memory Usage:${NC}\n"
-    free | awk 'NR==2{printf "Total: %s, Used: %s (%.2f%%)", $2, $3, $3*100/$2}'
+    printf "\n${GREEN}Memory Usage Details:${NC}\n"
+    free -m | awk 'NR==2{printf "  Used: %.2f%%\n", $3*100/$2}'
     
-    # Top Processes (Added more details)
-    printf "\n${GREEN}[*] Top 5 Processes by CPU Usage:${NC}\n"
-    ps aux | sort -nrk 3,3 | head -n 5 | awk '{printf "PID: %s, CPU: %s, Memory: %s, Command: %s\n", $2, $3, $4, $11}'
+    printf "\n${GREEN}Top 5 Processes by CPU (PID, %CPU, %MEM, CMD):${NC}\n"
+    ps aux --sort=-%cpu | head -n 6 | tail -n 5 | awk '{printf "  %-7s %-5s %-5s %s\n", $2, $3, $4, $11}'
 }
 
 # Network Information
 network_info() {
     log_section "NETWORK INFORMATION"
     
-    # Public IP (Added timeout and fallback)
-    printf "${GREEN}[*] Public IP:${NC}\n"
-    timeout 5 curl -s ifconfig.me || timeout 5 curl -s ipecho.net/plain || echo "Unable to retrieve public IP"
+    printf "${GREEN}Public IP:${NC}\n"
+    local public_ip
+    if public_ip=$(timeout 3 curl -s ifconfig.me 2>/dev/null); then
+        printf "  %s\n" "$public_ip"
+    else
+        printf "  %s\n" "Unable to retrieve (Check Connection)"
+    fi
     
-    # Network Interfaces (More detailed)
-    printf "\n${GREEN}[*] Network Interfaces:${NC}\n"
-    ip -br addr show
+    printf "\n${GREEN}Network Interfaces:${NC}\n"
+    # Reformat slightly for readability
+    if command -v ip >/dev/null 2>&1; then
+        ip -br addr show | awk '{printf "  %-15s %-15s %s\n", $1, $2, $3}'
+    else
+        ifconfig -a | grep -E '^[a-z]|inet ' | awk '{print "  "$0}'
+    fi
     
-    # DNS Servers
-    printf "\n${GREEN}[*] DNS Servers:${NC}\n"
-    grep -v '^#' /etc/resolv.conf | grep nameserver
-    
-    # Network Connectivity Test
-    printf "\n${GREEN}[*] Network Connectivity:${NC}\n"
-    timeout 3 ping -c 4 8.8.8.8 || echo "Network connectivity test failed"
+    printf "\n${GREEN}Connectivity (Ping 8.8.8.8):${NC}\n"
+    if timeout 2 ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        printf "  %s\n" "Connected"
+    else
+        printf "  %s\n" "Failed"
+    fi
 }
 
-# Error handling
 error_exit() {
-    printf "${YELLOW}ERROR: %s${NC}\n" "$1" >&2
+    printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
     exit 1
 }
 
 # Main Script Logic
 main() {
-    # Check for required commands
-    for cmd in hostname uname nproc free df ps ip curl; do
-        command -v "$cmd" >/dev/null 2>&1 || error_exit "Required command '$cmd' not found"
+    # Check dependencies silently where possible
+    for cmd in hostname uname nproc free df ps curl; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            printf "${YELLOW}[WARNING]${NC} Required command '%s' not found. Output may be incomplete.\n" "$cmd"
+        fi
     done
 
-    # Parse arguments
-    case "${1:-help}" in
+    case "${1:-}" in
         "info")
             system_info
             ;;
@@ -102,13 +107,24 @@ main() {
         "network")
             network_info
             ;;
-        "help")
-            printf "Usage: $0 {info|performance|network|help}\n"
+        "all")
+            system_info
+            performance_monitor
+            network_info
             ;;
         *)
-            error_exit "Invalid argument. Use {info|performance|network|help}"
+            echo "System Information Tool"
+            echo "Usage: $0 {info|performance|network|all}"
+            echo ""
+            echo "Commands:"
+            echo "  info          Display hardware, CPU, memory, and disk info."
+            echo "  performance   Show CPU load, memory usage, and top processes."
+            echo "  network       List public IP, interfaces, and connectivity."
+            echo "  all           Run all checks."
+            exit 1
             ;;
     esac
+    echo "" # padding
 }
 
 main "$@"

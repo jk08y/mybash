@@ -1,121 +1,157 @@
-# terminal-uninstall.sh updated
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Ultimate Terminal Enhancement Uninstallation Script
+# terminal-uninstall.sh
+# Professional Terminal Enhancement Uninstaller
+# Safely removes terminal enhancements and restores latest backup.
+
+set -euo pipefail
 
 # Color Codes
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly RED='\033[0;31m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m' # No Color
 
 # Logging Functions
+log_info() {
+    printf "${BLUE}[INFO]${NC} %s\n" "$1"
+}
+
 log_success() {
-    echo -e "${GREEN}[✓ SUCCESS]${NC} $1"
+    printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"
 }
 
 log_warning() {
-    echo -e "${YELLOW}[⚠ WARNING]${NC} $1"
+    printf "${YELLOW}[WARNING]${NC} %s\n" "$1"
 }
 
 log_error() {
-    echo -e "${RED}[✗ ERROR]${NC} $1"
+    printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
 }
+
+die() {
+    log_error "$1"
+    exit 1
+}
+
+if [ "$EUID" -eq 0 ]; then
+    die "This script must NOT be run as root. It modifies user-specific configurations."
+fi
+
+USER_HOME="$HOME"
 
 # Restore Original Configurations
 restore_configs() {
-    echo "Restoring original configurations..."
+    log_info "Looking for configuration backups..."
     
-    # Restore bashrc
-    if [ -f "$HOME/.bashrc.orig" ]; then
-        mv "$HOME/.bashrc.orig" "$HOME/.bashrc"
-        log_success "Original .bashrc restored"
-    fi
+    local BACKUP_REF_FILE="$USER_HOME/.terminal-config-latest-backup"
     
-    # Restore bash_aliases
-    if [ -f "$HOME/.bash_aliases.orig" ]; then
-        mv "$HOME/.bash_aliases.orig" "$HOME/.bash_aliases"
-        log_success "Original .bash_aliases restored"
-    fi
-    
-    # Restore tmux.conf
-    if [ -f "$HOME/.tmux.conf.orig" ]; then
-        mv "$HOME/.tmux.conf.orig" "$HOME/.tmux.conf"
-        log_success "Original .tmux.conf restored"
-    fi
-}
+    if [ -f "$BACKUP_REF_FILE" ]; then
+        local BACKUP_DIR
+        BACKUP_DIR=$(cat "$BACKUP_REF_FILE")
+        
+        if [ -d "$BACKUP_DIR" ]; then
+            log_info "Found backup directory: $BACKUP_DIR"
+            log_info "Restoring original configurations..."
 
-# Remove Installed Packages
-remove_packages() {
-    echo "Removing installed packages..."
-    
-    # List of packages to remove
-    PACKAGES_TO_REMOVE=(
-        "zsh" "oh-my-zsh" "tmux" 
-        "fzf" "ripgrep" "bat" "fd-find" "neofetch"
-    )
-    
-    for pkg in "${PACKAGES_TO_REMOVE[@]}"; do
-        apt-get remove -y "$pkg"
-    done
-    
-    log_success "Packages removed"
+            [ -f "$BACKUP_DIR/.bashrc.backup" ] && cp -f "$BACKUP_DIR/.bashrc.backup" "$USER_HOME/.bashrc" && log_success "Restored .bashrc"
+            [ -f "$BACKUP_DIR/.bash_aliases.backup" ] && cp -f "$BACKUP_DIR/.bash_aliases.backup" "$USER_HOME/.bash_aliases" && log_success "Restored .bash_aliases"
+            [ -f "$BACKUP_DIR/.tmux.conf.backup" ] && cp -f "$BACKUP_DIR/.tmux.conf.backup" "$USER_HOME/.tmux.conf" && log_success "Restored .tmux.conf"
+            [ -f "$BACKUP_DIR/.zshrc.backup" ] && cp -f "$BACKUP_DIR/.zshrc.backup" "$USER_HOME/.zshrc" && log_success "Restored .zshrc"
+
+            # Optionally clean up the reference file
+            rm -f "$BACKUP_REF_FILE"
+        else
+            log_warning "Backup directory ($BACKUP_DIR) listed in reference file does not exist. Cannot restore configurations."
+        fi
+    else
+        log_warning "No valid backup reference file found at $BACKUP_REF_FILE. Cannot restore configurations automatically."
+    fi
 }
 
 # Remove Utility Scripts
 remove_scripts() {
-    echo "Removing utility scripts..."
+    log_info "Removing installed utility scripts..."
     
-    # Remove scripts from bin
-    rm -rf "$HOME/bin/system-info-tool.sh"
-    rm -rf "$HOME/bin/network-utilities.sh"
+    local SCRIPTS=(
+        "network-utilities.sh"
+        "quick-backup-script.sh"
+        "system-info-tool.sh"
+    )
     
-    log_success "Utility scripts removed"
+    local script_removed=false
+    for script in "${SCRIPTS[@]}"; do
+        if [ -f "$USER_HOME/bin/$script" ]; then
+            rm -f "$USER_HOME/bin/$script"
+            log_success "Removed $script"
+            script_removed=true
+        fi
+    done
+    
+    if [ "$script_removed" = false ]; then
+        log_info "No utility scripts found in $USER_HOME/bin to remote."
+    fi
 }
 
 # Cleanup Oh My Zsh and Powerlevel10k
 cleanup_zsh() {
-    echo "Cleaning up Zsh configurations..."
+    log_info "Cleaning up Zsh custom configurations..."
     
-    # Remove Oh My Zsh
-    if [ -d "$HOME/.oh-my-zsh" ]; then
-        rm -rf "$HOME/.oh-my-zsh"
-        log_success "Oh My Zsh removed"
+    local ZSH_DIR="$USER_HOME/.oh-my-zsh"
+    local P10K_DIR="${ZSH_CUSTOM:-$USER_HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+    
+    if [ -d "$P10K_DIR" ]; then
+        rm -rf "$P10K_DIR"
+        log_success "Powerlevel10k theme removed."
     fi
     
-    # Remove Powerlevel10k
-    if [ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k" ]; then
-        rm -rf "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-        log_success "Powerlevel10k theme removed"
+    if [ -d "$ZSH_DIR" ]; then
+        log_warning "Oh My Zsh directory ($ZSH_DIR) still exists."
+        log_info "To completely remove Oh My Zsh, you can run 'uninstall_oh_my_zsh' if you are still logged into a Zsh standard session,"
+        log_info "or manually remove it by running: rm -rf ~/.oh-my-zsh"
     fi
-    
-    # Reset shell to default
-    chsh -s "$(which bash)"
 }
 
-# Main Uninstallation Function
+change_shell_to_bash() {
+    local target_shell
+    target_shell=$(command -v bash)
+    
+    if [ "$SHELL" != "$target_shell" ]; then
+        log_info "Changing default shell back to Bash..."
+        if sudo chsh -s "$target_shell" "$USER"; then
+            log_success "Default shell changed to Bash."
+        else
+            log_warning "Failed to change shell automatically. You may need to run 'chsh -s $(command -v bash)' manually."
+        fi
+    else
+        log_info "Bash is already the default shell."
+    fi
+}
+
 main() {
     clear
-    echo "🔄 Ultimate Terminal Enhancement Uninstaller 🔄"
-    echo "=============================================="
+    log_info "Starting Terminal Enhancement Uninstaller"
+    echo "=================================================="
     
     # Confirm uninstallation
-    read -p "Are you sure you want to uninstall? (y/N): " confirm
+    read -rp "Are you sure you want to uninstall user configurations and scripts? (y/N): " confirm
     if [[ "$confirm" != [yY] && "$confirm" != [yY][eE][sS] ]]; then
-        echo "Uninstallation cancelled."
+        log_info "Uninstallation cancelled."
         exit 0
     fi
     
-    # Run uninstallation steps
+    log_info "Note: Installed system packages (like git, curl, zsh) are NOT removed to prevent breaking other programs."
+    
     restore_configs
-    remove_packages
     remove_scripts
     cleanup_zsh
+    change_shell_to_bash
     
-    echo ""
-    log_success "Terminal enhancement completely uninstalled!"
-    echo "Your original terminal configuration has been restored."
+    echo "=================================================="
+    log_success "Terminal enhancements configurations uninstalled successfully."
+    log_info "Please restart your terminal or log out and log back in for changes to take full effect."
 }
 
 # Run the main uninstallation
-main
+main "$@"

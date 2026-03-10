@@ -1,137 +1,213 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Ensure script is run with sudo
-if [ "$EUID" -ne 0 ]; then
-   echo "This script must be run with sudo" 
-   echo "Usage: sudo ./terminal-install.sh"
-   exit 1
-fi
+# terminal-install.sh
+# Professional Terminal Enhancement Installer
+# This script installs required packages and sets up customizable configurations.
+
+set -euo pipefail
 
 # Color Codes
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly RED='\033[0;31m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m' # No Color
 
 # Logging Functions
+log_info() {
+    printf "${BLUE}[INFO]${NC} %s\n" "$1"
+}
+
 log_success() {
-    echo -e "${GREEN}[✓ SUCCESS]${NC} $1"
+    printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"
 }
 
 log_warning() {
-    echo -e "${YELLOW}[⚠ WARNING]${NC} $1"
+    printf "${YELLOW}[WARNING]${NC} %s\n" "$1"
 }
 
 log_error() {
-    echo -e "${RED}[✗ ERROR]${NC} $1"
+    printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
 }
 
-# Prerequisite Check
+die() {
+    log_error "$1"
+    exit 1
+}
+
+# Ensure script is NOT run as root, as dotfiles must belong to the user
+if [ "$EUID" -eq 0 ]; then
+    die "This script must NOT be run as root. It will ask for sudo password when necessary."
+fi
+
+# Determine terminal environment
+USER_HOME="$HOME"
+OS_RELEASE="/etc/os-release"
+
+check_os() {
+    if [ -f "$OS_RELEASE" ]; then
+        . "$OS_RELEASE"
+        if [[ "$ID" != "ubuntu" && "$ID" != "debian" && "$ID_LIKE" != *"debian"* && "$ID_LIKE" != *"ubuntu"* ]]; then
+            log_warning "This script is optimized for Ubuntu/Debian based systems. Some features might not work as expected."
+        fi
+    else
+        log_warning "Cannot determine OS. Proceeding with caution."
+    fi
+}
+
+# Check and Install Prerequisites
 check_prerequisites() {
-    echo "Checking system prerequisites..."
+    log_info "Checking system prerequisites..."
     
-    # List of required packages
-    REQUIRED_PACKAGES=(
+    local REQUIRED_PACKAGES=(
         "git" "curl" "wget" "tmux" "zsh" 
         "fzf" "ripgrep" "bat" "fd-find" "neofetch"
     )
     
+    local missing_packages=()
     for pkg in "${REQUIRED_PACKAGES[@]}"; do
         if ! command -v "$pkg" &> /dev/null; then
-            log_warning "Installing $pkg..."
-            apt-get install -y "$pkg" || log_error "Failed to install $pkg"
-        else
-            log_success "$pkg is already installed"
+            missing_packages+=("$pkg")
         fi
     done
+
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        log_info "Installing missing packages: ${missing_packages[*]}"
+        sudo apt-get update || die "Failed to update package lists."
+        sudo apt-get install -y "${missing_packages[@]}" || die "Failed to install required packages."
+        log_success "Packages installed successfully."
+    else
+        log_success "All prerequisite packages are already installed."
+    fi
 }
 
 # Install Oh My Zsh
 install_oh_my_zsh() {
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        echo "Installing Oh My Zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        log_success "Oh My Zsh installed successfully"
+    if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
+        log_info "Installing Oh My Zsh..."
+        RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || die "Failed to install Oh My Zsh."
+        log_success "Oh My Zsh installed successfully."
     else
-        log_warning "Oh My Zsh is already installed"
+        log_info "Oh My Zsh is already installed. Skipping."
     fi
 }
 
 # Install Powerlevel10k Theme
 install_powerlevel10k() {
-    POWERLEVEL_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+    local POWERLEVEL_DIR="${ZSH_CUSTOM:-$USER_HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
     if [ ! -d "$POWERLEVEL_DIR" ]; then
-        echo "Installing Powerlevel10k theme..."
-        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$POWERLEVEL_DIR"
-        log_success "Powerlevel10k theme installed"
+        log_info "Installing Powerlevel10k theme..."
+        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$POWERLEVEL_DIR" || die "Failed to clone Powerlevel10k."
+        log_success "Powerlevel10k theme installed."
     else
-        log_warning "Powerlevel10k is already installed"
+        log_info "Powerlevel10k is already installed. Skipping."
     fi
 }
 
 # Backup and Install Configurations
 install_configs() {
-    echo "Setting up configurations..."
+    log_info "Setting up configurations..."
     
-    # Create backup directory
-    BACKUP_DIR="$HOME/.terminal-config-backup-$(date +%Y%m%d%H%M%S)"
-    mkdir -p "$BACKUP_DIR"
+    # Create backup directory timestamped for uninstallation reference
+    local TIMESTAMP
+    TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    local BACKUP_DIR="$USER_HOME/.terminal-config-backup-$TIMESTAMP"
     
-    # Backup existing configs
-    cp -n "$HOME/.bashrc" "$BACKUP_DIR/.bashrc.backup" 2>/dev/null
-    cp -n "$HOME/.zshrc" "$BACKUP_DIR/.zshrc.backup" 2>/dev/null
+    mkdir -p "$BACKUP_DIR" || die "Failed to create backup directory."
     
-    # Install new configurations
-    cp configs/bashrc-custom.bashrc "$HOME/.bashrc"
-    cp configs/bash-aliases-custom.sh "$HOME/.bash_aliases"
-    cp configs/tmux-config.conf "$HOME/.tmux.conf"
+    # Backup existing configs safely
+    [ -f "$USER_HOME/.bashrc" ] && cp -a "$USER_HOME/.bashrc" "$BACKUP_DIR/.bashrc.backup"
+    [ -f "$USER_HOME/.bash_aliases" ] && cp -a "$USER_HOME/.bash_aliases" "$BACKUP_DIR/.bash_aliases.backup"
+    [ -f "$USER_HOME/.tmux.conf" ] && cp -a "$USER_HOME/.tmux.conf" "$BACKUP_DIR/.tmux.conf.backup"
+    [ -f "$USER_HOME/.zshrc" ] && cp -a "$USER_HOME/.zshrc" "$BACKUP_DIR/.zshrc.backup"
     
-    log_success "Configurations installed successfully"
+    log_info "Previous configurations backed up to $BACKUP_DIR"
+    
+    # Install new configurations - ensure they exist in repository
+    if [ -f "configs/bashrc-custom" ]; then
+        cp -f configs/bashrc-custom "$USER_HOME/.bashrc"
+    else
+        log_warning "configs/bashrc-custom not found. Skipping .bashrc installation."
+    fi
+
+    if [ -f "configs/bash-aliases-custom" ]; then
+        cp -f configs/bash-aliases-custom "$USER_HOME/.bash_aliases"
+    else
+        log_warning "configs/bash-aliases-custom not found. Skipping .bash_aliases installation."
+    fi
+
+    if [ -f "configs/tmux-config" ]; then
+        cp -f configs/tmux-config "$USER_HOME/.tmux.conf"
+    else
+        log_warning "configs/tmux-config not found. Skipping .tmux.conf installation."
+    fi
+    
+    log_success "Configurations installed successfully."
+    
+    # Save the backup directory path for uninstaller to find
+    echo "$BACKUP_DIR" > "$USER_HOME/.terminal-config-latest-backup"
 }
 
 # Install Utility Scripts
 install_scripts() {
-    echo "Installing utility scripts..."
+    log_info "Installing utility scripts..."
     
-    # Create bin directory if not exists
-    mkdir -p "$HOME/bin"
+    # Create bin directory if it doesn't exist
+    mkdir -p "$USER_HOME/bin"
     
-    # Copy scripts and make executable
-    cp scripts/*.sh "$HOME/bin/"
-    chmod +x "$HOME/bin"/*.sh
-    
-    # Add bin to PATH if not already there
-    if ! grep -q "$HOME/bin" "$HOME/.bashrc"; then
-        echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
+    # Copy scripts and make them executable
+    if ls scripts/*.sh 1> /dev/null 2>&1; then
+        cp -f scripts/*.sh "$USER_HOME/bin/"
+        chmod +x "$USER_HOME/bin"/*.sh
+        log_success "Utility scripts installed."
+    else
+        log_warning "No .sh scripts found in scripts/ directory."
     fi
     
-    log_success "Utility scripts installed"
+    # Add bin to PATH in .zshrc and .bashrc if not already there
+    for rc in "$USER_HOME/.bashrc" "$USER_HOME/.zshrc"; do
+        if [ -f "$rc" ]; then
+            if ! grep -q "$USER_HOME/bin" "$rc"; then
+                echo -e '\nexport PATH="$HOME/bin:$PATH"\n' >> "$rc"
+            fi
+        fi
+    done
 }
 
-# Main Installation Function
+change_shell() {
+    local target_shell
+    target_shell=$(command -v zsh)
+    
+    if [ "$SHELL" != "$target_shell" ]; then
+        log_info "Changing default shell to Zsh..."
+        if sudo chsh -s "$target_shell" "$USER"; then
+            log_success "Default shell changed to Zsh."
+        else
+            log_warning "Failed to change shell automatically. You may need to run 'chsh -s $(command -v zsh)' manually."
+        fi
+    else
+        log_info "Zsh is already the default shell."
+    fi
+}
+
 main() {
     clear
-    echo "🚀 Ultimate Terminal Enhancement Installer 🚀"
-    echo "============================================"
+    log_info "Starting Terminal Enhancement Installer"
+    echo "=================================================="
     
-    # Update package lists
-    apt-get update
+    check_os
     
-    # Run installation steps
     check_prerequisites
     install_oh_my_zsh
     install_powerlevel10k
     install_configs
     install_scripts
+    change_shell
     
-    # Change default shell to Zsh
-    chsh -s "$(which zsh)"
-    
-    echo ""
-    log_success "Terminal enhancement complete! Please restart your terminal."
-    echo "Backup of original configs stored in: $BACKUP_DIR"
+    echo "=================================================="
+    log_success "Terminal enhancements installation is complete!"
+    log_info "Please restart your terminal or log out and log back in for changes to take full effect."
 }
 
-# Run the main installation process
-main
-
+# Execute main process
+main "$@"
